@@ -4,6 +4,7 @@ from datetime import datetime
 import pytest
 import pytz
 import taosws
+
 from storey import SyncEmitSource, build_flow
 from storey.targets import TDEngineTarget
 
@@ -48,7 +49,9 @@ def tdengine():
 
 
 @pytest.mark.parametrize("table_col", [None, "$key", "table"])
-@pytest.mark.skipif(url is None or not url.startswith("taosws"), reason="Missing Valid TDEngine URL")
+@pytest.mark.skipif(
+    url is None or not url.startswith("taosws"), reason="Missing Valid TDEngine URL"
+)
 def test_tdengine_target(tdengine, table_col):
     connection, url, db_name, supertable_name, db_prefix = tdengine
     time_format = "%d/%m/%y %H:%M:%S UTC%z"
@@ -57,7 +60,9 @@ def test_tdengine_target(tdengine, table_col):
 
     # Table is created automatically only when using a supertable
     if not table_col:
-        connection.execute(f"CREATE TABLE {db_prefix}{table_name} (time TIMESTAMP, my_string NCHAR(10), my_int INT);")
+        connection.execute(
+            f"CREATE TABLE {db_prefix}{table_name} (time TIMESTAMP, my_string NCHAR(10), my_int INT);"
+        )
 
     controller = build_flow(
         [
@@ -98,7 +103,9 @@ def test_tdengine_target(tdengine, table_col):
     else:
         query_table = table_name
         where_clause = ""
-    result = connection.query(f"SELECT * FROM {db_prefix}{query_table} {where_clause} ORDER BY my_int;")
+    result = connection.query(
+        f"SELECT * FROM {db_prefix}{query_table} {where_clause} ORDER BY my_int;"
+    )
     result_list = []
     for row in result:
         row = list(row)
