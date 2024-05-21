@@ -777,7 +777,8 @@ class TSDBTarget(_Batching, _Writer):
 class TDEngineTarget(_Batching, _Writer):
     """Writes incoming events to a TDEngine table.
 
-    :param url: TDEngine Websocket URL, e.g. taosws://<username>:<password>@<host>:<port>.
+    :param url: TDEngine Websocket URL. You an either provide a full URL (e.g. taosws://user:password@host:port) or
+                just the host and port (e.g. host:port) and provide the user and password separately.
     :param time_col: Name of the time column.
     :param columns: List of column names to be passed to the DataFrame constructor. Use = notation for renaming fields
         (e.g. write_this=event_field). Use $ notation to refer to metadata ($key, event_time=$time).
