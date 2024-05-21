@@ -9,6 +9,7 @@ from storey.targets import TDEngineTarget
 
 url = os.getenv("TDENGINE_URL")
 
+
 @pytest.fixture()
 def tdengine():
     db_name = "storey"
