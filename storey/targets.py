@@ -870,7 +870,6 @@ class TDEngineTarget(_Batching, _Writer):
         self._url = url
         self._database = database
 
-
     def _init(self):
         import taosws
 

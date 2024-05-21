@@ -9,7 +9,6 @@ from storey.targets import TDEngineTarget
 
 url = os.getenv("TDENGINE_URL")
 
-
 @pytest.fixture()
 def tdengine():
     db_name = "storey"
@@ -48,7 +47,7 @@ def tdengine():
 
 
 @pytest.mark.parametrize("table_col", [None, "$key", "table"])
-@pytest.mark.skipif(not url and not url.startswith("taosws"), reason="Missing TDEngine URL")
+@pytest.mark.skipif(url is None or not url.startswith("taosws"), reason="Missing Valid TDEngine URL")
 def test_tdengine_target(tdengine, table_col):
     connection, url, db_name, supertable_name, db_prefix = tdengine
     time_format = "%d/%m/%y %H:%M:%S UTC%z"
