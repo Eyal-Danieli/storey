@@ -781,6 +781,8 @@ class TDEngineTarget(_Batching, _Writer):
     :param time_col: Name of the time column.
     :param columns: List of column names to be passed to the DataFrame constructor. Use = notation for renaming fields
         (e.g. write_this=event_field). Use $ notation to refer to metadata ($key, event_time=$time).
+    :param user: Username with which to connect.
+    :param password: Password with which to connect.
     :param database: Name of the database where events will be written.
     :param table: Name of the table in the database where events will be written. To set the table dynamically on a
         per-event basis, use the $ prefix to indicate the field that should be used for the table name, or $$ prefix to
@@ -807,6 +809,8 @@ class TDEngineTarget(_Batching, _Writer):
         url: str,
         time_col: str,
         columns: List[str],
+        user: Optional[str] = None,
+        password: Optional[str] = None,
         database: Optional[str] = None,
         table: Optional[str] = None,
         table_col: Optional[str] = None,
@@ -815,8 +819,6 @@ class TDEngineTarget(_Batching, _Writer):
         time_format: Optional[str] = None,
         **kwargs,
     ):
-        if not url.startswith("taosws"):
-            raise ValueError("URL must start with taosws://")
 
         if table and table_col:
             raise ValueError("Cannot set both table and table_col")
@@ -833,6 +835,10 @@ class TDEngineTarget(_Batching, _Writer):
         kwargs["url"] = url
         kwargs["time_col"] = time_col
         kwargs["columns"] = columns
+        if user:
+            kwargs["user"] = user
+        if password:
+            kwargs["password"] = password
 
         if database:
             kwargs["database"] = database
@@ -868,6 +874,8 @@ class TDEngineTarget(_Batching, _Writer):
             time_format=time_format,
         )
         self._url = url
+        self._user = user
+        self._password = password
         self._database = database
 
     def _init(self):
@@ -875,8 +883,10 @@ class TDEngineTarget(_Batching, _Writer):
 
         _Batching._init(self)
         _Writer._init(self)
-
-        self._connection = taosws.connect(self._url)
+        if self._url.startswith("taosws://"):
+            self._connection = taosws.connect(self._url)
+        else:
+            self._connection = taosws.connect(url=self._url, user=self._user, password=self._password)
         self._connection.execute(f"USE {self._database}")
 
     def _event_to_batch_entry(self, event):
