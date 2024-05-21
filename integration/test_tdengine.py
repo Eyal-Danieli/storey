@@ -3,17 +3,11 @@ from datetime import datetime
 
 import pytest
 import pytz
-import taosrest
-from taosrest import ConnectError
-from taosws import QueryError
-
+import taosws
 from storey import SyncEmitSource, build_flow
 from storey.targets import TDEngineTarget
 
 url = os.getenv("TDENGINE_URL")
-user = os.getenv("TDENGINE_USER")
-password = os.getenv("TDENGINE_PASSWORD")
-has_tdengine_credentials = all([url, user, password]) or (url and url.startswith("taosws"))
 
 
 @pytest.fixture()
@@ -21,24 +15,12 @@ def tdengine():
     db_name = "storey"
     supertable_name = "test_supertable"
 
-    # Setup
-    if url.startswith("taosws"):
-        import taosws
-
-        connection = taosws.connect(url)
-        db_prefix = ""
-    else:
-        db_prefix = db_name + "."
-        connection = taosrest.connect(
-            url=url,
-            user=user,
-            password=password,
-            timeout=30,
-        )
+    connection = taosws.connect(url)
+    db_prefix = ""
 
     try:
         connection.execute(f"DROP DATABASE {db_name};")
-    except (ConnectError, QueryError) as err:  # websocket connection raises QueryError
+    except taosws.QueryError as err:  # websocket connection raises QueryError
         if "Database not exist" not in str(err):
             raise err
 
@@ -49,7 +31,7 @@ def tdengine():
 
     try:
         connection.execute(f"DROP STABLE {db_prefix}{supertable_name};")
-    except (ConnectError, QueryError) as err:  # websocket connection raises QueryError
+    except taosws.QueryError as err:  # websocket connection raises QueryError
         if "STable not exist" not in str(err):
             raise err
 
@@ -58,7 +40,7 @@ def tdengine():
     )
 
     # Test runs
-    yield connection, url, user, password, db_name, supertable_name, db_prefix
+    yield connection, url, db_name, supertable_name, db_prefix
 
     # Teardown
     connection.execute(f"DROP DATABASE {db_name};")
@@ -66,9 +48,9 @@ def tdengine():
 
 
 @pytest.mark.parametrize("table_col", [None, "$key", "table"])
-@pytest.mark.skipif(not has_tdengine_credentials, reason="Missing TDEngine URL, user, and/or password")
+@pytest.mark.skipif(not url and not url.startswith("taosws"), reason="Missing TDEngine URL")
 def test_tdengine_target(tdengine, table_col):
-    connection, url, user, password, db_name, supertable_name, db_prefix = tdengine
+    connection, url, db_name, supertable_name, db_prefix = tdengine
     time_format = "%d/%m/%y %H:%M:%S UTC%z"
 
     table_name = "test_table"
@@ -84,8 +66,6 @@ def test_tdengine_target(tdengine, table_col):
                 url=url,
                 time_col="time",
                 columns=["my_string"] if table_col else ["my_string", "my_int"],
-                user=user,
-                password=password,
                 database=db_name,
                 table=None if table_col else table_name,
                 table_col=table_col,
